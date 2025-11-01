@@ -1,0 +1,1921 @@
+reduced_image_business_trade_ahead.png
+Context
+Stock market has consistently proven to be a good place to invest in and save for the future. There are a lot of compelling reasons to invest in stocks. It can help in fighting inflation, create wealth, and also provides some tax benefits. Good steady returns on investments over a long period of time can also grow a lot more than seems possible. Also, thanks to the power of compound interest, the earlier one starts investing, the larger the corpus one can have for retirement. Overall, investing in stocks can help meet life's financial aspirations.
+
+It is important to maintain a diversified portfolio when investing in stocks to maximize earnings under any market condition. Having a diversified portfolio tends to yield higher returns and face lower risk by tempering potential losses when the market is down. It is often easy to get lost in a sea of financial metrics to analyze while determining the worth of a stock, and doing the same for a multitude of stocks to identify the right picks for an individual can be a tedious task. By doing a cluster analysis, one can identify stocks that exhibit similar characteristics and ones that exhibit minimum correlation. This will help investors better analyze stocks across different market segments and help protect against risks that could make the portfolio vulnerable to losses.
+
+Objective
+Trade&Ahead is a financial consultancy firm that provides its customers with personalized investment strategies.
+
+TASK
+Analyzing the data
+Grouping the stocks based on the attributes provided
+Sharing insights about the characteristics of each group.
+Data Description
+The data provided:
+
+Stock prices
+Some financial indicators like
+ROE
+Earnings per share
+P/E ratio, etc.
+Data Dictionary
+1.Ticker Symbol: An abbreviation used to uniquely identify publicly traded shares of a particular stock on a particular stock market
+
+2.Company: Name of the company
+
+3.GICS Sector: The specific economic sector assigned to a company by the Global Industry Classification Standard (GICS) that best defines its business operations
+
+4.GICS Sub Industry: The specific sub-industry group assigned to a company by the Global Industry Classification Standard (GICS) that best defines its business operations
+
+5.Current Price: Current stock price in dollars
+
+6.Price Change: Percentage change in the stock price in 13 weeks
+
+7.Volatility: Standard deviation of the stock price over the past 13 weeks
+
+8.ROE: A measure of financial performance calculated by dividing net income by shareholders' equity (shareholders' equity is equal to a company's assets minus its debt)
+
+9.Cash Ratio: The ratio of a company's total reserves of cash and cash equivalents to its total current liabilities
+
+10.Net Cash Flow: The difference between a company's cash inflows and outflows (in dollars)
+
+11.Net Income: Revenues minus expenses, interest, and taxes (in dollars)
+
+12.Earnings Per Share: Company's net profit divided by the number of common shares it has outstanding (in dollars)
+
+13.Estimated Shares Outstanding: Company's stock is currently held by all its shareholders
+
+14.P/E Ratio: Ratio of the company's current stock price to the earnings per share
+
+15.P/B Ratio: Ratio of the company's stock price per share by its book value per share (book value of a company is the net difference between that company's total assets and total liabilities)
+
+Libraries
+# Libraries to help with reading and manipulating data
+import numpy as np
+import pandas as pd
+
+# Libraries to help with data visualization
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set_theme(style='darkgrid')
+
+# Removes the limit for the number of displayed columns
+pd.set_option("display.max_columns", None)
+# Sets the limit for the number of displayed rows
+pd.set_option("display.max_rows", 200)
+
+# to scale the data using z-score
+from sklearn.preprocessing import StandardScaler
+
+# to compute distances
+from scipy.spatial.distance import cdist, pdist
+# to perform k-means clustering and compute silhouette scores
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+# to visualize the elbow curve and silhouette scores
+from yellowbrick.cluster import KElbowVisualizer, SilhouetteVisualizer
+
+# to perform hierarchical clustering, compute cophenetic correlation
+from sklearn.cluster import AgglomerativeClustering
+from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
+
+# to suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
+Import Data
+# import dataset from google drive
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+data = pd.read_csv('/content/drive/MyDrive/stock_data.csv')
+Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount("/content/drive", force_remount=True).
+Dataset Analysis
+# Checking first 5 rows of dataset
+data.head()
+Ticker Symbol	Security	GICS Sector	GICS Sub Industry	Current Price	Price Change	Volatility	ROE	Cash Ratio	Net Cash Flow	Net Income	Earnings Per Share	Estimated Shares Outstanding	P/E Ratio	P/B Ratio
+0	AAL	American Airlines Group	Industrials	Airlines	42.349998	9.999995	1.687151	135	51	-604000000	7610000000	11.39	6.681299e+08	3.718174	-8.784219
+1	ABBV	AbbVie	Health Care	Pharmaceuticals	59.240002	8.339433	2.197887	130	77	51000000	5144000000	3.15	1.633016e+09	18.806350	-8.750068
+2	ABT	Abbott Laboratories	Health Care	Health Care Equipment	44.910000	11.301121	1.273646	21	67	938000000	4423000000	2.94	1.504422e+09	15.275510	-0.394171
+3	ADBE	Adobe Systems Inc	Information Technology	Application Software	93.940002	13.977195	1.357679	9	180	-240840000	629551000	1.26	4.996437e+08	74.555557	4.199651
+4	ADI	Analog Devices, Inc.	Information Technology	Semiconductors	55.320000	-1.827858	1.701169	14	272	315120000	696878000	0.31	2.247994e+09	178.451613	1.059810
+# Checking last 5 rows of dataset
+data.tail()
+Ticker Symbol	Security	GICS Sector	GICS Sub Industry	Current Price	Price Change	Volatility	ROE	Cash Ratio	Net Cash Flow	Net Income	Earnings Per Share	Estimated Shares Outstanding	P/E Ratio	P/B Ratio
+335	YHOO	Yahoo Inc.	Information Technology	Internet Software & Services	33.259998	14.887727	1.845149	15	459	-1032187000	-4359082000	-4.64	939457327.6	28.976191	6.261775
+336	YUM	Yum! Brands Inc	Consumer Discretionary	Restaurants	52.516175	-8.698917	1.478877	142	27	159000000	1293000000	2.97	435353535.4	17.682214	-3.838260
+337	ZBH	Zimmer Biomet Holdings	Health Care	Health Care Equipment	102.589996	9.347683	1.404206	1	100	376000000	147000000	0.78	188461538.5	131.525636	-23.884449
+338	ZION	Zions Bancorp	Financials	Regional Banks	27.299999	-1.158588	1.468176	4	99	-43623000	309471000	1.20	257892500.0	22.749999	-0.063096
+339	ZTS	Zoetis	Health Care	Pharmaceuticals	47.919998	16.678836	1.610285	32	65	272000000	339000000	0.68	498529411.8	70.470585	1.723068
+# checking shape of the dataset
+data.shape
+(340, 15)
+The data set provided for analysis had rows : 340 and columns : 15
+# Checking the data types of the columns for the dataset
+data.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 340 entries, 0 to 339
+Data columns (total 15 columns):
+ #   Column                        Non-Null Count  Dtype  
+---  ------                        --------------  -----  
+ 0   Ticker Symbol                 340 non-null    object 
+ 1   Security                      340 non-null    object 
+ 2   GICS Sector                   340 non-null    object 
+ 3   GICS Sub Industry             340 non-null    object 
+ 4   Current Price                 340 non-null    float64
+ 5   Price Change                  340 non-null    float64
+ 6   Volatility                    340 non-null    float64
+ 7   ROE                           340 non-null    int64  
+ 8   Cash Ratio                    340 non-null    int64  
+ 9   Net Cash Flow                 340 non-null    int64  
+ 10  Net Income                    340 non-null    int64  
+ 11  Earnings Per Share            340 non-null    float64
+ 12  Estimated Shares Outstanding  340 non-null    float64
+ 13  P/E Ratio                     340 non-null    float64
+ 14  P/B Ratio                     340 non-null    float64
+dtypes: float64(7), int64(4), object(4)
+memory usage: 40.0+ KB
+dataset has
+float64 - 7
+int64 - 4
+object - 4
+# creating a copy of original data
+df = data.copy()
+# checking for duplicates
+df.duplicated().sum()
+0
+# checking for missing values
+df.isnull().sum()
+0
+Ticker Symbol	0
+Security	0
+GICS Sector	0
+GICS Sub Industry	0
+Current Price	0
+Price Change	0
+Volatility	0
+ROE	0
+Cash Ratio	0
+Net Cash Flow	0
+Net Income	0
+Earnings Per Share	0
+Estimated Shares Outstanding	0
+P/E Ratio	0
+P/B Ratio	0
+
+dtype: int64
+The dataset has Duplicates = 0 and Missing values = 0
+Statistical summary
+# checking statistical summary of they dataset
+df.describe().T
+count	mean	std	min	25%	50%	75%	max
+Current Price	340.0	8.086234e+01	9.805509e+01	4.500000e+00	3.855500e+01	5.970500e+01	9.288000e+01	1.274950e+03
+Price Change	340.0	4.078194e+00	1.200634e+01	-4.712969e+01	-9.394838e-01	4.819505e+00	1.069549e+01	5.505168e+01
+Volatility	340.0	1.525976e+00	5.917984e-01	7.331632e-01	1.134878e+00	1.385593e+00	1.695549e+00	4.580042e+00
+ROE	340.0	3.959706e+01	9.654754e+01	1.000000e+00	9.750000e+00	1.500000e+01	2.700000e+01	9.170000e+02
+Cash Ratio	340.0	7.002353e+01	9.042133e+01	0.000000e+00	1.800000e+01	4.700000e+01	9.900000e+01	9.580000e+02
+Net Cash Flow	340.0	5.553762e+07	1.946365e+09	-1.120800e+10	-1.939065e+08	2.098000e+06	1.698108e+08	2.076400e+10
+Net Income	340.0	1.494385e+09	3.940150e+09	-2.352800e+10	3.523012e+08	7.073360e+08	1.899000e+09	2.444200e+10
+Earnings Per Share	340.0	2.776662e+00	6.587779e+00	-6.120000e+01	1.557500e+00	2.895000e+00	4.620000e+00	5.009000e+01
+Estimated Shares Outstanding	340.0	5.770283e+08	8.458496e+08	2.767216e+07	1.588482e+08	3.096751e+08	5.731175e+08	6.159292e+09
+P/E Ratio	340.0	3.261256e+01	4.434873e+01	2.935451e+00	1.504465e+01	2.081988e+01	3.176476e+01	5.280391e+02
+P/B Ratio	340.0	-1.718249e+00	1.396691e+01	-7.611908e+01	-4.352056e+00	-1.067170e+00	3.917066e+00	1.290646e+02
+There are totally 340 companies and 15 columns to describe its details.
+
+As there are no duplicates and missing values it can be used as such for further analysis.
+
+Exploratory Data Analysis
+Univariate analysis
+Ticker symbol
+⚛ An abbreviation used to uniquely identify publicly traded shares of a particular stock on a particular stock market
+
+Company
+⚛ Name of the company
+
+A=df['Security'].unique()
+print(A)
+B=df['Security'].nunique()
+print("Total no. of companies :",B)
+['American Airlines Group' 'AbbVie' 'Abbott Laboratories'
+ 'Adobe Systems Inc' 'Analog Devices, Inc.' 'Archer-Daniels-Midland Co'
+ 'Alliance Data Systems' 'Ameren Corp' 'American Electric Power'
+ 'AFLAC Inc' 'American International Group, Inc.'
+ 'Apartment Investment & Mgmt' 'Assurant Inc' 'Arthur J. Gallagher & Co.'
+ 'Akamai Technologies Inc' 'Albemarle Corp' 'Alaska Air Group Inc'
+ 'Allstate Corp' 'Allegion' 'Alexion Pharmaceuticals'
+ 'Applied Materials Inc' 'AMETEK Inc' 'Affiliated Managers Group Inc'
+ 'Amgen Inc' 'Ameriprise Financial' 'American Tower Corp A'
+ 'Amazon.com Inc' 'AutoNation Inc' 'Anthem Inc.' 'Aon plc'
+ 'Apache Corporation' 'Anadarko Petroleum Corp' 'Amphenol Corp'
+ 'Arconic Inc' 'Activision Blizzard' 'AvalonBay Communities, Inc.'
+ 'Broadcom' 'American Water Works Company Inc' 'American Express Co'
+ 'Boeing Company' 'Bank of America Corp' 'Baxter International Inc.'
+ 'BB&T Corporation' 'Bard (C.R.) Inc.' 'Baker Hughes Inc'
+ 'BIOGEN IDEC Inc.' 'The Bank of New York Mellon Corp.' 'Ball Corp'
+ 'Bristol-Myers Squibb' 'Boston Scientific' 'BorgWarner'
+ 'Boston Properties' 'Citigroup Inc.' 'Caterpillar Inc.' 'Chubb Limited'
+ 'CBRE Group' 'Crown Castle International Corp.' 'Carnival Corp.'
+ 'Celgene Corp.' 'CF Industries Holdings Inc' 'Citizens Financial Group'
+ 'Church & Dwight' 'Chesapeake Energy' 'C. H. Robinson Worldwide'
+ 'Charter Communications' 'CIGNA Corp.' 'Cincinnati Financial'
+ 'Colgate-Palmolive' 'Comerica Inc.' 'CME Group Inc.'
+ 'Chipotle Mexican Grill' 'Cummins Inc.' 'CMS Energy'
+ 'Centene Corporation' 'CenterPoint Energy' 'Capital One Financial'
+ 'Cabot Oil & Gas' 'The Cooper Companies' 'CSX Corp.' 'CenturyLink Inc'
+ 'Cognizant Technology Solutions' 'Citrix Systems' 'CVS Health'
+ 'Chevron Corp.' 'Concho Resources' 'Dominion Resources' 'Delta Air Lines'
+ 'Du Pont (E.I.)' 'Deere & Co.' 'Discover Financial Services'
+ 'Quest Diagnostics' 'Danaher Corp.' 'The Walt Disney Company'
+ 'Discovery Communications-A' 'Discovery Communications-C'
+ 'Delphi Automotive' 'Digital Realty Trust' 'Dun & Bradstreet'
+ 'Dover Corp.' 'Dr Pepper Snapple Group' 'Duke Energy' 'DaVita Inc.'
+ 'Devon Energy Corp.' 'eBay Inc.' 'Ecolab Inc.' 'Consolidated Edison'
+ 'Equifax Inc.' "Edison Int'l" 'Eastman Chemical' 'EOG Resources'
+ 'Equinix' 'Equity Residential' 'EQT Corporation' 'Eversource Energy'
+ 'Essex Property Trust, Inc.' 'E*Trade' 'Eaton Corporation'
+ 'Entergy Corp.' 'Edwards Lifesciences' 'Exelon Corp.' "Expeditors Int'l"
+ 'Expedia Inc.' 'Extra Space Storage' 'Ford Motor' 'Fastenal Co'
+ 'Facebook' 'Fortune Brands Home & Security' 'Freeport-McMoran Cp & Gld'
+ 'FirstEnergy Corp' 'Fidelity National Information Services' 'Fiserv Inc'
+ 'FLIR Systems' 'Fluor Corp.' 'Flowserve Corporation' 'FMC Corporation'
+ 'Federal Realty Investment Trust' 'First Solar Inc'
+ 'Frontier Communications' 'General Dynamics'
+ 'General Growth Properties Inc.' 'Gilead Sciences' 'Corning Inc.'
+ 'General Motors' 'Genuine Parts' 'Garmin Ltd.' 'Goodyear Tire & Rubber'
+ 'Grainger (W.W.) Inc.' 'Halliburton Co.' 'Hasbro Inc.'
+ 'Huntington Bancshares' 'HCA Holdings' 'Welltower Inc.' 'HCP Inc.'
+ 'Hess Corporation' 'Hartford Financial Svc.Gp.' 'Harley-Davidson'
+ "Honeywell Int'l Inc." 'Hewlett Packard Enterprise' 'HP Inc.'
+ 'Hormel Foods Corp.' 'Henry Schein' 'Host Hotels & Resorts'
+ 'The Hershey Company' 'Humana Inc.' 'International Business Machines'
+ 'IDEXX Laboratories' 'Intl Flavors & Fragrances' 'Intel Corp.'
+ 'International Paper' 'Interpublic Group' 'Iron Mountain Incorporated'
+ 'Intuitive Surgical Inc.' 'Illinois Tool Works' 'Invesco Ltd.'
+ 'J. B. Hunt Transport Services' 'Jacobs Engineering Group'
+ 'Juniper Networks' 'JPMorgan Chase & Co.' 'Kimco Realty' 'Kimberly-Clark'
+ 'Kinder Morgan' 'Coca Cola Company' 'Kansas City Southern'
+ 'Leggett & Platt' 'Lennar Corp.' 'Laboratory Corp. of America Holding'
+ 'LKQ Corporation' 'L-3 Communications Holdings' 'Lilly (Eli) & Co.'
+ 'Lockheed Martin Corp.' 'Alliant Energy Corp' 'Leucadia National Corp.'
+ 'Southwest Airlines' 'Level 3 Communications' 'LyondellBasell'
+ 'Mastercard Inc.' 'Mid-America Apartments' 'Macerich' "Marriott Int'l."
+ 'Masco Corp.' 'Mattel Inc.' "McDonald's Corp." "Moody's Corp"
+ 'Mondelez International' 'MetLife Inc.' 'Mohawk Industries'
+ 'Mead Johnson' 'McCormick & Co.' 'Martin Marietta Materials'
+ 'Marsh & McLennan' '3M Company' 'Monster Beverage' 'Altria Group Inc'
+ 'The Mosaic Company' 'Marathon Petroleum' 'Merck & Co.'
+ 'Marathon Oil Corp.' 'M&T Bank Corp.' 'Mettler Toledo' 'Murphy Oil'
+ 'Mylan N.V.' 'Navient' 'Noble Energy Inc' 'NASDAQ OMX Group'
+ 'NextEra Energy' 'Newmont Mining Corp. (Hldg. Co.)' 'Netflix Inc.'
+ 'Newfield Exploration Co' 'Nielsen Holdings'
+ 'National Oilwell Varco Inc.' 'Norfolk Southern Corp.'
+ 'Northern Trust Corp.' 'Nucor Corp.' 'Newell Brands'
+ 'Realty Income Corporation' 'ONEOK' 'Omnicom Group' "O'Reilly Automotive"
+ 'Occidental Petroleum' "People's United Financial" 'Pitney-Bowes'
+ 'PACCAR Inc.' 'PG&E Corp.' 'Priceline.com Inc'
+ 'Public Serv. Enterprise Inc.' 'PepsiCo Inc.' 'Pfizer Inc.'
+ 'Principal Financial Group' 'Procter & Gamble' 'Progressive Corp.'
+ 'Pulte Homes Inc.' 'Philip Morris International' 'PNC Financial Services'
+ 'Pentair Ltd.' 'Pinnacle West Capital' 'PPG Industries' 'PPL Corp.'
+ 'Prudential Financial' 'Phillips 66' 'Quanta Services Inc.'
+ 'Praxair Inc.' 'PayPal' 'Ryder System' 'Royal Caribbean Cruises Ltd'
+ 'Regeneron' 'Robert Half International' 'Roper Industries'
+ 'Range Resources Corp.' 'Republic Services Inc' 'SCANA Corp'
+ 'Charles Schwab Corporation' 'Spectra Energy Corp.' 'Sealed Air'
+ 'Sherwin-Williams' 'SL Green Realty' 'Scripps Networks Interactive Inc.'
+ 'Southern Co.' 'Simon Property Group Inc' 'S&P Global, Inc.'
+ 'Stericycle Inc' 'Sempra Energy' 'SunTrust Banks' 'State Street Corp.'
+ 'Skyworks Solutions' 'Southwestern Energy' 'Synchrony Financial'
+ 'Stryker Corp.' 'AT&T Inc' 'Molson Coors Brewing Company'
+ 'Teradata Corp.' 'Tegna, Inc.' 'Torchmark Corp.'
+ 'Thermo Fisher Scientific' 'TripAdvisor' 'The Travelers Companies Inc.'
+ 'Tractor Supply Company' 'Tyson Foods' 'Tesoro Petroleum Co.'
+ 'Total System Services' 'Texas Instruments' 'Under Armour'
+ 'United Continental Holdings' 'UDR Inc' 'Universal Health Services, Inc.'
+ 'United Health Group Inc.' 'Unum Group' 'Union Pacific'
+ 'United Parcel Service' 'United Technologies' 'Varian Medical Systems'
+ 'Valero Energy' 'Vulcan Materials' 'Vornado Realty Trust'
+ 'Verisk Analytics' 'Verisign Inc.' 'Vertex Pharmaceuticals Inc'
+ 'Ventas Inc' 'Verizon Communications' 'Waters Corporation'
+ 'Wec Energy Group Inc' 'Wells Fargo' 'Whirlpool Corp.'
+ 'Waste Management Inc.' 'Williams Cos.' 'Western Union Co'
+ 'Weyerhaeuser Corp.' 'Wyndham Worldwide' 'Wynn Resorts Ltd'
+ 'Cimarex Energy' 'Xcel Energy Inc' 'XL Capital' 'Exxon Mobil Corp.'
+ 'Dentsply Sirona' 'Xerox Corp.' 'Xylem Inc.' 'Yahoo Inc.'
+ 'Yum! Brands Inc' 'Zimmer Biomet Holdings' 'Zions Bancorp' 'Zoetis']
+Total no. of companies : 340
+Current price
+#  creating a histogram for current price
+
+plt.figure(figsize=(8, 6))  # Set the figure size
+sns.histplot(df['Current Price'], kde=True,)
+plt.title('Distribution of Current Stock Prices')  # Set the title
+plt.xlabel('Current Price')  # Set the x-axis label
+plt.ylabel ('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# creating a boxplot of current price
+plt.figure(figsize=(8, 5))  # Set the figure size
+sns.boxplot(x=df['Current Price'])
+plt.title('Boxplot of Current Stock  Prices')  # Set the title
+plt.xlabel('Current Price')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Current Price is slightly right skewed and outliers also present.
+Volatility
+# Create a histogram for Volatility
+plt.figure(figsize=(8, 5))  # Set the figure size
+sns.histplot(df['Volatility'], kde=True)
+plt.title('Distribution of Volatility')  # Set the title
+plt.xlabel('Volatility')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# creating a boxplot of volatility
+plt.figure(figsize=(8, 5))  # Set the figure size
+sns.boxplot(x=df['Volatility'])
+plt.title('Boxplot of Volatility')  # Set the title
+plt.xlabel('Volatility')  # Set the x-axis label
+plt.show()  # Display the plot
+
+# Create a timeline for volatility
+plt.figure(figsize=(15, 6))
+plt.plot(df['Ticker Symbol'], df['Volatility'])
+plt.xlabel('Ticker Symbol')  # Set the x-axis label
+plt.ylabel('Volatility')  # Set the y-axis label
+plt.title('Volatility Timeline')  # Set the title
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.tight_layout() # Adjust layout to prevent labels from overlapping
+plt.show()
+
+Insights
+
+Standard deviation of the stock price over the past 13 weeks
+Volatility is right skewed and outliers are also present
+ROE
+#  create histogram of ROE
+
+plt.figure(figsize=(8, 4))  # Set the figure size
+sns.histplot(df['ROE'], kde=True)
+plt.title('Distribution of ROE')  # Set the title
+plt.xlabel('ROE')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+#create boxplot of ROE
+
+plt.figure(figsize=(8, 4))  # Set the figure size
+sns.boxplot(x=df['ROE'])
+plt.title('Boxplot of ROE')  # Set the title
+plt.xlabel('ROE')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insights
+
+ROE is skewed and outliers are also present
+Cash ratio
+#  generating histogram of cash ratio for analysis
+plt.figure(figsize=(6, 4))  # Set the figure size
+sns.histplot(df['Cash Ratio'], kde=True)
+plt.title('Distribution of Cash Ratio')  # Set the title
+plt.xlabel('Cash Ratio')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# generating boxplot of cash ratio for analysis
+plt.figure(figsize=(6, 4))  # Set the figure size
+sns.boxplot(x=df['Cash Ratio'])
+plt.title('Boxplot of Cash Ratio')  # Set the title
+plt.xlabel('Cash Ratio')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Cash Ratio is right skewed and outliers are also present
+Net cash flow
+# generating histogram of net cash flow for analysis
+plt.figure(figsize=(8, 4))  # Set the figure size
+sns.histplot(df['Net Cash Flow'], kde=True)
+plt.title('Distribution of Net Cash Flow')  # Set the title
+plt.xlabel('Net Cash Flow')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# generating boxplot of net cash flow for analysis
+plt.figure(figsize=(8, 4))  # Set the figure size
+sns.boxplot(x=df['Net Cash Flow'])
+plt.title('Boxplot of Net Cash Flow')  # Set the title
+plt.xlabel('Net Cash Flow')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Net cash flow is almost normally distributed and outliers are also present
+Net income
+# generating boxplot of net income for analysis
+plt.figure(figsize=(7, 4))  # Set the figure size
+sns.boxplot(x=df['Net Income'])
+plt.title('Boxplot of Net Income')  # Set the title
+plt.xlabel('Net Income')  # Set the x-axis label
+plt.show()  # Display the plot
+
+# generating histogram of net income for analysis
+plt.figure(figsize=(6, 4))  # Set the figure size
+sns.histplot(df['Net Income'], kde=True)
+plt.title('Distribution of Net Income')  # Set the title
+plt.xlabel('Net Income')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Net Income is slightly right skewed and outliers are also present
+Earning per share
+#  generating histogram of earning per share for analysis
+plt.figure(figsize=(8, 6))  # Set the figure size
+sns.histplot(df['Earnings Per Share'], kde=True)
+plt.title('Distribution of Earnings Per Share')  # Set the title
+plt.xlabel('Earnings Per Share')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# generating boxplot of earning per share for analysis
+plt.figure(figsize=(8, 6))  # Set the figure size
+sns.boxplot(x=df['Earnings Per Share'])
+plt.title('Boxplot of Earnings Per Share')  # Set the title
+plt.xlabel('Earnings Per Share')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Earnings Per Share is slightly skewed and outliers are also present
+Estimated shares outstanding
+# generating histogram of estimated shares outstanding for analysis
+plt.figure(figsize=(8, 6))  # Set the figure size
+sns.histplot(df['Estimated Shares Outstanding'], kde=True)
+plt.title('Distribution of Estimated Shares Outstanding')  # Set the title
+plt.xlabel('Estimated Shares Outstanding')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# generating boxplot of estimated shares outstanding for analysis
+plt.figure(figsize=(8, 6))  # Set the figure size
+sns.boxplot(x=df['Estimated Shares Outstanding'])
+plt.title('Boxplot of Estimated Shares Outstanding')  # Set the title
+plt.xlabel('Estimated Shares Outstanding')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Estimated Shares Outstanding is right skewed and outliers are also present
+P/E ratio
+# generating histogram of P/E ratio for analysis
+plt.figure(figsize=(6, 5))  # Set the figure size
+sns.histplot(df['P/E Ratio'], kde=True)
+plt.title('Distribution of P/E Ratio')  # Set the title
+plt.xlabel('P/E Ratio')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# generating boxplot of P/E ratio for analysis
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.boxplot(x=df['P/E Ratio'])
+plt.title('Boxplot of P/E Ratio')  # Set the title
+plt.xlabel('P/E Ratio')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insight
+
+P/E Ratio is right skewed and outliers are also present
+P/B ratio
+# generating histogram of P/B ratio for analysis
+plt.figure(figsize=(6, 5))  # Set the figure size
+sns.histplot(df['P/B Ratio'], kde=True)
+plt.title('Distribution of P/B Ratio')  # Set the title
+plt.xlabel('P/B Ratio')  # Set the x-axis label
+plt.ylabel('Frequency')  # Set the y-axis label
+plt.show()  # Display the plot
+
+# generating boxplot of P/B ratio for analysis
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.boxplot(x=df['P/B Ratio'])
+plt.title('Boxplot of P/B Ratio')  # Set the title
+plt.xlabel('P/B Ratio')  # Set the x-axis label
+plt.show()  # Display the plot
+
+Insight
+
+P/B Ratio is right skewed and outliers are also present
+GICS Sector
+# Create a bar plot for GICS Sector
+plt.figure(figsize=(18, 6))  # Set the figure size
+sns.countplot(x='GICS Sector', data=df)
+plt.title('Distribution of GICS Sectors')  # Set the title
+plt.xlabel('GICS Sector')  # Set the x-axis label
+plt.ylabel('Count')  # Set the y-axis label
+plt.xticks(rotation=45, ha='right') # Rotate x-axis labels for better readability
+plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+plt.show()  # Display the plot
+
+Insights
+
+Highest percentage of companies present in industries sector followed by Finance and then consumer discretionary
+GICS Sub Industry
+# creating a barplot of gics sub industry
+
+plt.figure(figsize=(12, 6))  # Set the figure size
+sns.countplot(x='GICS Sub Industry', data=df)  # Create a countplot
+plt.title('Distribution of GICS Sub Industries')  # Set the title
+plt.xlabel('Count')  # Set the x-axis label
+plt.ylabel('GICS Sub Industry')  # Set the y-axis label
+plt.xticks(rotation=90, ha='right')  # Rotate x-axis labels for better readability
+plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+plt.show()  # Display the plot
+
+Insights
+
+Highest percentage of stocks belong to subsector Oil and Gas Exploration and Production followed by REITs, Insustrial Conglomerate
+Bivariate Analysis
+# check correlation using heatmap
+# Select the columns for correlation analysis
+columns_for_correlation = ['Current Price', 'Price Change', 'Volatility', 'ROE', 'Cash Ratio', 'Net Cash Flow',
+                           'Net Income', 'Earnings Per Share', 'Estimated Shares Outstanding', 'P/E Ratio', 'P/B Ratio']
+
+# Create a heatmap
+plt.figure(figsize=(12, 8))  # Adjust figure size as needed
+correlation_matrix = df[columns_for_correlation].corr()  # Calculate correlation matrix
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)  # Create heatmap
+plt.title('Correlation Heatmap')  # Set the title
+plt.show()
+
+Insights
+
+Estimations per share and netincome are positively correlated
+Price and velocity are negatively correlated slightly
+ROE and Earnings per share are negatively correlated.
+Net Income vs. Earnings Per Share (EPS)
+Target : check the how EPS influences the net income
+
+# generating scatterplot for Net Income vs. Earnings Per Share (EPS)
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Net Income', y='Earnings Per Share', data=df)
+plt.title('Net Income vs. Earnings Per Share')  # Set the title
+plt.xlabel('Net Income')  # Set the x-axis label
+plt.ylabel('Earnings Per Share')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insights
+
+A positive correlation suggests that as net income increases, EPS also tends to increase, reflecting that higher profits are likely translating to higher earnings per share.
+Earnings Per Share vs. Current Price
+Target : check the relationship of price with the value of EPS
+
+# generating scatterplot for Earnings Per Share vs. Current Price
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Earnings Per Share', y='Current Price', data=df)
+plt.title('Earnings Per Share vs. Current Price')  # Set the title
+plt.xlabel('Earnings Per Share')  # Set the x-axis label
+plt.ylabel('Current Price')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insights
+
+This relationship indicates that stocks with higher EPS tend to have higher prices. This can reflect investor preference for companies with higher earnings per share.
+Net Income vs. Estimated Shares Outstanding
+Target : Check the influence of net income over the outstanding shares.
+
+# generating scatterplot for Net Income vs. Estimated Shares Outstanding
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Net Income', y='Estimated Shares Outstanding', data=df)
+plt.title('Net Income vs. Estimated Shares Outstanding')  # Set the title
+plt.xlabel('Net Income')  # Set the x-axis label
+plt.ylabel('Estimated Shares Outstanding')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insights
+
+Insight: This suggests that companies with higher net income tend to have more shares outstanding, possibly indicating larger companies with greater market capitalization.
+the plot shows moderate positive correlation
+Volatility vs. Price Change
+Target : The effects of volatality on the change in price should be analysised
+
+# analysing using scatterplot of Volatility vs. Price Change
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Volatility', y='Price Change', data=df)
+plt.title('Volatility vs. Price Change')  # Set the title
+plt.xlabel('Volatility')  # Set the x-axis label
+plt.ylabel('Price Change')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insights
+
+This negative correlation shows that stocks with higher volatility tend to have less price change over 13 weeks, possibly due to frequent price fluctuations that balance out over time.
+ROE vs. Earnings Per Share
+Target : check if there is an influence of ROE on EPS
+
+# generating scatterplot of ROE vs. Earnings Per Share
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='ROE', y='Earnings Per Share', data=df)
+plt.title('ROE vs. Earnings Per Share')  # Set the title
+plt.xlabel('ROE')  # Set the x-axis label
+plt.ylabel('Earnings Per Share')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insight:
+
+This negative relationship suggests that companies with higher ROE might not always have higher EPS, potentially due to differences in share volume or capital structure.
+Current Price vs. P/E Ratio
+Target : Check if the price trends have influence on the P/E ratio
+
+# generating scatterplot of  Current Price vs. P/E Ratio
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Current Price', y='P/E Ratio', data=df)
+plt.title('Current Price vs. P/E Ratio')  # Set the title
+plt.xlabel('Current Price')  # Set the x-axis label
+plt.ylabel('P/E Ratio')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insight:
+
+A slight positive correlation indicates that stocks with higher prices tend to have higher P/E ratios, which might indicate investor optimism or overvaluation for certain stocks.
+P/B Ratio vs. Cash Ratio
+Target : check if liquidity has effect on the p/b ratio
+
+# generate a scatterplot of P/B Ratio vs. Cash Ratio
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='P/B Ratio', y='Cash Ratio', data=df)
+plt.title('P/B Ratio vs. Cash Ratio')  # Set the title
+plt.xlabel('P/B Ratio')  # Set the x-axis label
+plt.ylabel('Cash Ratio')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insight:
+
+This weak correlation suggests a slight relationship between liquidity (cash ratio) and book valuation (P/B ratio), which could indicate that financially stable companies are viewed more favorably by the market.
+Volatility vs. GICS Sector
+# Generate boxplot of Volatility vs. GICS Sector
+plt.figure(figsize=(12, 6))  # Set the figure size
+sns.boxplot(x='GICS Sector', y='Volatility', data=df)
+plt.title('Volatility vs. GICS Sector')
+plt.xlabel('GICS Sector')
+plt.ylabel('Volatility') # set y label
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+Insight:
+
+Useful for comparing volatility across different sectors. Some sectors may inherently be more volatile than others like technology and utilities.
+Net Cash Flow vs. Cash Ratio
+# analyzing using scatterplot of Net Cash Flow vs. Cash Ratio
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Net Cash Flow', y='Cash Ratio', data=df)
+plt.title('Net Cash Flow vs. Cash Ratio')  # Set the title
+plt.xlabel('Net Cash Flow')  # Set the x-axis label
+plt.ylabel('Cash Ratio')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insight:
+
+This weak relationship implies that companies with higher net cash flow do not necessarily have a higher cash ratio, indicating other factors may be affecting liquidity.
+Price Change vs. GICS Sector
+#  generate boxplot of  Price Change vs. GICS Sector
+
+plt.figure(figsize=(12, 6))  # Set the figure size
+sns.boxplot(x='GICS Sector', y='Price Change', data=df)
+plt.title('Price Change vs. GICS Sector') # title of the plot
+plt.xlabel('GICS Sector')  # sey x axis label
+plt.ylabel('Price Change') # set y label
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+Insights
+
+certain sectors tend to have more price appreciation or depreciation. Useful for sector-based investment strategies.
+P/E Ratio vs. Volatility
+#  scatterplot of P/E Ratio vs. Volatility
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='P/E Ratio', y='Volatility', data=df)
+plt.title('P/E Ratio vs. Volatility')  # Set the title
+plt.xlabel('P/E Ratio')  # Set the x-axis label
+plt.ylabel('Volatility')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insight:
+
+This slight positive correlation indicates that more volatile stocks may tend to have higher P/E ratios, which might reflect investor risk tolerance for growth stocks.
+Price Change vs. ROE
+# create a scatterplot of Price Change vs. ROE
+
+plt.figure(figsize=(6, 6))  # Set the figure size
+sns.scatterplot(x='Price Change', y='ROE', data=df)
+plt.title('Price Change vs. ROE')  # Set the title
+plt.xlabel('Price Change')  # Set the x-axis label
+plt.ylabel('ROE')  # Set the y-axis label
+plt.show()  # Display the plot
+
+Insight:
+
+Given the weak correlation, this pair may not have a meaningful relationship, but plotting it could help visualize any non-linear patterns.
+GICS Sector vs Price change
+# generate barplot for price change and gisc sector
+plt.figure(figsize=(15,8))  # Set the figure size
+sns.barplot(data=df, x='GICS Sector', y='Price Change', ci=False)
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.title('Price Change by GICS Sector')  # Set the title
+plt.xlabel('GICS Sector')  # Set the x-axis label
+plt.ylabel('Price Change')  # Set the y-axis label
+plt.show()
+
+Insight
+
+Maximum increase in price change can be seen in healthcare sector stocks followed by consumer staples
+Negative price change can be seen only in energy sector stocks.
+GICS sector vs P/E Ratio
+# generate a barplot of P/E ratio and sics sector
+plt.figure(figsize=(15,8))  # Set the figure size
+sns.barplot(data=df, x='GICS Sector', y='P/E Ratio', ci=False)
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.title('P/E Ratio by GICS Sector')  # Set the title
+plt.xlabel('GICS Sector')  # Set the x-axis label
+plt.ylabel('P/E Ratio')
+plt.show()
+
+Insights
+
+P/E Ratio is highest for Energy sector stocks followed by IT sector stocks and Real Estate stocks
+GICS Sector vs Volatility
+# generate a barplot of volatility and gics sector
+plt.figure(figsize=(15,8))  # Set the figure size
+sns.barplot(data=df, x='GICS Sector', y='Volatility', ci=False)
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.title('Volatility by GICS Sector')  # Set the title
+plt.xlabel('GICS Sector')  # Set the x-axis label
+plt.ylabel('Volatility')
+plt.show()
+
+Insights
+
+Volatility in stocks is highest for Energy sector stocks followed by Materials, IT stocks.
+Multivariate analysis
+# prompt: 3d scatterplot of Current Price, Earnings Per Share (EPS), and P/E Ratio
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# Assuming 'df' is your DataFrame
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+x = df['Current Price']
+y = df['Earnings Per Share']
+z = df['P/E Ratio']
+
+ax.scatter(x, y, z, c=z, cmap='viridis')  # Use colormap for better visualization
+
+ax.set_xlabel('Current Price')
+ax.set_ylabel('Earnings Per Share (EPS)')
+ax.set_zlabel('P/E Ratio')
+ax.set_title('3D Scatterplot of Current Price, EPS, and P/E Ratio')
+
+plt.show()
+
+Insight
+
+EPS and P/E ratios influence the current stock price as high prices with high P/E ratios and EPS might indicate high-growth or overvalued stocks. A low EPS with a low P/E ratio might suggest undervaluation.
+ROE, Cash Ratio, and Net Income
+#  3d scatterplot of ROE, Cash Ratio, and Net Income
+
+
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+x = df['ROE']
+y = df['Cash Ratio']
+z = df['Net Income']
+
+ax.scatter(x, y, z, c=z, cmap='viridis')  # Use colormap for better visualization
+
+ax.set_xlabel('ROE')
+ax.set_ylabel('Cash Ratio')
+ax.set_zlabel('Net Income')
+ax.set_title('3D Scatterplot of ROE, Cash Ratio, and Net Income')
+
+plt.show()
+
+Insights
+
+combination reveals the relationship between financial health (Cash Ratio), profitability (Net Income), and efficiency (ROE). High ROE and Cash Ratio with high Net Income can suggest financially strong companies that efficiently generate profit while maintaining liquidity.
+Net Cash Flow, Cash Ratio, and P/B Ratio
+# generate pairplot of Net Cash Flow, Cash Ratio, and P/B Ratio
+plt.figure(figsize=(8, 6))  # Set the figure size
+sns.pairplot(df[['Net Cash Flow', 'Cash Ratio', 'P/B Ratio']])
+plt.suptitle('Pairplot of Net Cash Flow, Cash Ratio, and P/B Ratio')  # Set the title
+plt.show()  # Display the plot
+<Figure size 800x600 with 0 Axes>
+
+Insights
+
+combination helps to understand the relationship between liquidity (Cash Ratio), financial valuation (P/B Ratio), and cash flow. Companies with high cash flow, high cash ratio, and lower P/B ratios might be considered financially sound and potentially undervalued.
+Volatility, ROE, and Net Income
+#  generate a Volatility, ROE, and Net Income
+
+
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+x = df['Volatility']
+y = df['ROE']
+z = df['Net Income']
+
+ax.scatter(x, y, z, c=z, cmap='viridis')
+
+ax.set_xlabel('Volatility')
+ax.set_ylabel('ROE')
+ax.set_zlabel('Net Income')
+ax.set_title('3D Scatterplot of Volatility, ROE, and Net Income')
+
+plt.show()
+
+Insight
+
+Analyzing volatility with profitability metrics can indicate whether higher-risk stocks tend to generate higher or lower ROE and net income. High ROE and net income with low volatility might suggest stable, profitable investments
+GICS Sector, Price Change, and Current Price
+# box plot of GICS Sector, Price Change, and Current Price
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(12, 6))  # Adjust figure size as needed
+sns.barplot(hue='GICS Sector', x='Price Change', y='Current Price', data=df)
+plt.title('GICS Sector vs Price Change (Hue: Current Price)')  # Set the title
+plt.xlabel('current price')  # Set the x-axis label
+plt.ylabel('Price Change')  # Set the y-axis label
+plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better readability
+plt.tight_layout()
+plt.show()
+
+EDA Observations
+Maximum increase in price change can be seen in healthcare sector stocks followed by consumer staples Negative price change can be seen only in energy sector stocks.
+
+weak correlation between pb ration and cash ratio suggests a slight relationship between liquidity (cash ratio) and book valuation (P/B ratio), which could indicate that financially stable companies are viewed more favorably by the market.
+
+The dataset contains 340 records with 15 columns, including categorical and numerical data.
+
+Key numerical columns include metrics like "Current Price," "Price Change," "Volatility," "ROE," "Net Cash Flow," "Net Income," "Earnings Per Share," "P/E Ratio," and "P/B Ratio."
+
+Key categorical columns include "Ticker Symbol," "Security," "GICS Sector," and "GICS Sub Industry."
+
+"Current Price" and "Price Change" exhibit variations across securities, hinting at different price trends and performance.
+
+"ROE" (Return on Equity) varies significantly, suggesting differences in profitability among companies.
+
+"Cash Ratio" values suggest liquidity levels differ, impacting each company's financial flexibility .
+
+Some columns, such as "P/B Ratio," have negative values, which may indicate potential issues in book values or calculation anomalies.
+
+The dataset has no missing values across columns
+
+Analyzing volatility with profitability metrics can indicate whether higher-risk stocks tend to generate higher or lower ROE and net income. High ROE and net income with low volatility might suggest stable, profitable investments *
+
+Exploratory Data Analysis Questions
+Answers to EDA Questions
+
+Question no:1
+What does the distribution of stock prices look like?
+Answer no:1
+
+The distribution of stock prices is heavily skewed to the right, with the majority of stocks priced below $200. There are a few stocks with very high prices, but these are outliers.
+# Question 1: Distribution of Stock Prices
+plt.figure(figsize=(5, 5))
+sns.histplot(df['Current Price'], kde=True, bins=30)
+plt.title('Distribution of Stock Prices')
+plt.xlabel('Stock Price')
+plt.ylabel('Frequency')
+plt.show()
+
+Question no:2
+The stocks of which economic sector has seen the maximum price increase on average?
+Answer no : 2
+
+The Health Care sector has seen the maximum price increase on average, with an average price change of approximately 9.59%.
+avg_price_change_by_sector = df.groupby('GICS Sector')['Price Change'].mean().sort_values(ascending=False)
+
+# Display the sector with the highest average price change
+avg_price_change_by_sector
+Price Change
+GICS Sector	
+Health Care	9.585652
+Consumer Staples	8.684750
+Information Technology	7.217476
+Telecommunications Services	6.956980
+Real Estate	6.205548
+Consumer Discretionary	5.846093
+Materials	5.589738
+Financials	3.865406
+Industrials	2.833127
+Utilities	0.803657
+Energy	-10.228289
+
+dtype: float64
+Question no:3
+How are the different variables correlated with each other?
+Answer no: 3
+
+The correlation matrix displays the relationship between different numeric variables, indicating the strength and direction of their associations.
+# check correlation using heatmap
+# Select the columns for correlation analysis
+columns_for_correlation = ['Current Price', 'Price Change', 'Volatility', 'ROE', 'Cash Ratio', 'Net Cash Flow',
+                           'Net Income', 'Earnings Per Share', 'Estimated Shares Outstanding', 'P/E Ratio', 'P/B Ratio']
+
+# Create a heatmap
+plt.figure(figsize=(8, 8))  # Adjust figure size as needed
+correlation_matrix = df[columns_for_correlation].corr()  # Calculate correlation matrix
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)  # Create heatmap
+plt.title('Correlation Heatmap')  # Set the title
+plt.show()
+
+Insights
+
+Estimations per share and netincome are positively correlated
+Price and velocity are negatively correlated slightly
+ROE and Earnings per share are negatively correlated.
+Question no:4
+Cash ratio measures a company's ability to cover its short-term obligations using only cash and cash equivalents. How does the average cash ratio vary across economic sectors?
+Answer no : 4
+
+Cash ratio measures a company's ability to cover its short-term obligations using only cash and cash equivalents , this ability is high for Information Technology 149.818182
+# Question 4: Calculate average cash ratio across economic sectors
+avg_cash_ratio_by_sector = data.groupby('GICS Sector')['Cash Ratio'].mean()
+
+# Display the average cash ratio by sector
+avg_cash_ratio_by_sector
+Cash Ratio
+GICS Sector	
+Consumer Discretionary	49.575000
+Consumer Staples	70.947368
+Energy	51.133333
+Financials	98.591837
+Health Care	103.775000
+Industrials	36.188679
+Information Technology	149.818182
+Materials	41.700000
+Real Estate	50.111111
+Telecommunications Services	117.000000
+Utilities	13.625000
+
+dtype: float64
+Question no:5
+P/E ratios can help determine the relative value of a company's shares as they signify the amount of money an investor is willing to invest in a single share of a company per dollar of its earnings. How does the P/E ratio vary, on average, across economic sectors?
+Answer no:5
+
+the P/E ratio vary, on average, across economic sectors is high for Energy 72.897709
+# Question 5: Calculate average P/E ratio across economic sectors
+avg_pe_ratio_by_sector = data.groupby('GICS Sector')['P/E Ratio'].mean()
+
+# Display results
+avg_pe_ratio_by_sector
+P/E Ratio
+GICS Sector	
+Consumer Discretionary	35.211613
+Consumer Staples	25.521195
+Energy	72.897709
+Financials	16.023151
+Health Care	41.135272
+Industrials	18.259380
+Information Technology	43.782546
+Materials	24.585352
+Real Estate	43.065585
+Telecommunications Services	12.222578
+Utilities	18.719412
+
+dtype: float64
+Data Processing
+Duplicate value check
+Missing value treatment
+Outlier check
+Feature engineering
+Duplicate value check
+# prompt: check duplicate values'
+
+# Check for duplicate rows
+duplicate_rows = df[df.duplicated()]
+
+# Print the number of duplicate rows
+print(f"Number of duplicate rows: {len(duplicate_rows)}")
+Number of duplicate rows: 0
+There are't any duplicate values present.
+Missing values and Treatment
+# Check for missing values in the DataFrame
+missing_values = df.isnull().sum()
+
+# Print the number of missing values for each column
+missing_values
+0
+Ticker Symbol	0
+Security	0
+GICS Sector	0
+GICS Sub Industry	0
+Current Price	0
+Price Change	0
+Volatility	0
+ROE	0
+Cash Ratio	0
+Net Cash Flow	0
+Net Income	0
+Earnings Per Share	0
+Estimated Shares Outstanding	0
+P/E Ratio	0
+P/B Ratio	0
+
+dtype: int64
+There are;'nt any missing values present
+Outlier Check
+Boxplots of all numerical columns to check for outliers.
+plt.figure(figsize=(15, 12))
+
+numeric_columns = df.select_dtypes(include=np.number).columns.tolist()
+
+for i, variable in enumerate(numeric_columns):
+    plt.subplot(3, 4, i + 1)
+    plt.boxplot(df[variable], whis=1.5)
+    plt.tight_layout()
+    plt.title(variable)
+
+plt.show()
+
+Outliers can be seen for all the numerical columns
+Not treating tthe outliers and will work on the original dataset.
+Scaling
+scale the data before proceeding with clustering.
+# scaling the data before clustering
+scaler = StandardScaler()
+subset = df[numeric_columns].copy()
+subset_scaled = scaler.fit_transform(subset)
+# creating a dataframe of the scaled columns
+subset_scaled_df = pd.DataFrame(subset_scaled, columns=subset.columns)
+subset_scaled_df.head()
+Current Price	Price Change	Volatility	ROE	Cash Ratio	Net Cash Flow	Net Income	Earnings Per Share	Estimated Shares Outstanding	P/E Ratio	P/B Ratio
+0	-0.393341	0.493950	0.272749	0.989601	-0.210698	-0.339355	1.554415	1.309399	0.107863	-0.652487	-0.506653
+1	-0.220837	0.355439	1.137045	0.937737	0.077269	-0.002335	0.927628	0.056755	1.250274	-0.311769	-0.504205
+2	-0.367195	0.602479	-0.427007	-0.192905	-0.033488	0.454058	0.744371	0.024831	1.098021	-0.391502	0.094941
+3	0.133567	0.825696	-0.284802	-0.317379	1.218059	-0.152497	-0.219816	-0.230563	-0.091622	0.947148	0.424333
+4	-0.260874	-0.492636	0.296470	-0.265515	2.237018	0.133564	-0.202703	-0.374982	1.978399	3.293307	0.199196
+scaled all the numerical columns of the dataset.
+K-means Clustering
+k_means_df = subset_scaled_df.copy()
+clusters = range(1, 15)
+meanDistortions = []
+
+for k in clusters:
+    model = KMeans(n_clusters=k, random_state=1)
+    model.fit(subset_scaled_df)
+    prediction = model.predict(k_means_df)
+    distortion = (
+        sum(np.min(cdist(k_means_df, model.cluster_centers_, "euclidean"), axis=1))
+        / k_means_df.shape[0]
+         )
+
+    meanDistortions.append(distortion)
+
+    print("Number of Clusters:", k, "\tAverage Distortion:", distortion)
+
+plt.plot(clusters, meanDistortions, "bx-")
+plt.xlabel("k")
+plt.ylabel("Average Distortion")
+plt.title("Selecting k with the Elbow Method", fontsize=20)
+plt.show()
+Number of Clusters: 1 	Average Distortion: 2.5425069919221697
+Number of Clusters: 2 	Average Distortion: 2.3862098789299604
+Number of Clusters: 3 	Average Distortion: 2.33620927590848
+Number of Clusters: 4 	Average Distortion: 2.219050563833442
+Number of Clusters: 5 	Average Distortion: 2.133404401901685
+Number of Clusters: 6 	Average Distortion: 2.081503686093715
+Number of Clusters: 7 	Average Distortion: 2.0045413402786814
+Number of Clusters: 8 	Average Distortion: 1.9864237824874411
+Number of Clusters: 9 	Average Distortion: 1.956222103389025
+Number of Clusters: 10 	Average Distortion: 1.9360473996664198
+Number of Clusters: 11 	Average Distortion: 1.8615942883461607
+Number of Clusters: 12 	Average Distortion: 1.8219574388532505
+Number of Clusters: 13 	Average Distortion: 1.7936924742607907
+Number of Clusters: 14 	Average Distortion: 1.7567842179093438
+
+The appropriate value of k from the elbow curve seems to be 6 to 7.
+model = KMeans(random_state=1)
+visualizer = KElbowVisualizer(model, k=(1, 15), timings=True)
+visualizer.fit(k_means_df)  # fit the data to the visualizer
+visualizer.show()  # finalize and render figure
+
+<Axes: title={'center': 'Distortion Score Elbow for KMeans Clustering'}, xlabel='k', ylabel='distortion score'>
+As per the elbowvisualizer, the k value is mentioned to be 6.
+silhouette scores
+sil_score = []
+cluster_list = range(2, 15)
+for n_clusters in cluster_list:
+    clusterer = KMeans(n_clusters=n_clusters, random_state=1)
+    preds = clusterer.fit_predict((subset_scaled_df))
+    score = silhouette_score(k_means_df, preds)
+    sil_score.append(score)
+    print("For n_clusters = {}, the silhouette score is {})".format(n_clusters, score))
+
+plt.plot(cluster_list, sil_score)
+plt.show()
+For n_clusters = 2, the silhouette score is 0.45335782729503565)
+For n_clusters = 3, the silhouette score is 0.40374060030338865)
+For n_clusters = 4, the silhouette score is 0.4246430808437099)
+For n_clusters = 5, the silhouette score is 0.4381539778147092)
+For n_clusters = 6, the silhouette score is 0.40869599703024256)
+For n_clusters = 7, the silhouette score is 0.1207450219233897)
+For n_clusters = 8, the silhouette score is 0.3693991650696542)
+For n_clusters = 9, the silhouette score is 0.35185096182499204)
+For n_clusters = 10, the silhouette score is 0.32950073703610283)
+For n_clusters = 11, the silhouette score is 0.1486586842527321)
+For n_clusters = 12, the silhouette score is 0.15784241071085106)
+For n_clusters = 13, the silhouette score is 0.15646997458716602)
+For n_clusters = 14, the silhouette score is 0.16253506827999134)
+
+model = KMeans(random_state=1)
+visualizer = KElbowVisualizer(model, k=(2, 15), metric="silhouette", timings=True)
+visualizer.fit(k_means_df)  # fit the data to the visualizer
+visualizer.show()  # finalize and render figure
+
+<Axes: title={'center': 'Silhouette Score Elbow for KMeans Clustering'}, xlabel='k', ylabel='silhouette score'>
+# finding optimal no. of clusters with silhouette coefficients
+visualizer = SilhouetteVisualizer(KMeans(6, random_state=1))  ## Complete the code to visualize the silhouette scores for certain number of clusters
+visualizer.fit(k_means_df)
+visualizer.show()
+
+<Axes: title={'center': 'Silhouette Plot of KMeans Clustering for 340 Samples in 6 Centers'}, xlabel='silhouette coefficient values', ylabel='cluster label'>
+# finding optimal no. of clusters with silhouette coefficients
+visualizer = SilhouetteVisualizer(KMeans(9, random_state=1))
+visualizer.fit(subset_scaled_df)
+visualizer.show()
+
+<Axes: title={'center': 'Silhouette Plot of KMeans Clustering for 340 Samples in 9 Centers'}, xlabel='silhouette coefficient values', ylabel='cluster label'>
+Final model
+Takingke 9 as the appropriate no. of clusters as the silhouette score is high enough and there is knick at 9 in the elbow curve
+# final K-means model
+kmeans = KMeans(n_clusters=9, random_state=1)  ## Complete the code to choose the number of clusters
+kmeans.fit(k_means_df)
+
+  KMeans?i
+KMeans(n_clusters=9, random_state=1)
+# creating a copy of the original data
+df1 = df.copy()
+
+# adding kmeans cluster labels to the original and scaled dataframes
+k_means_df["KM_segments"] = kmeans.labels_
+df1["KM_segments"] = kmeans.labels_
+Cluster profiling
+# Select only numeric columns
+km_cluster_profile = df1.groupby("KM_segments").mean(numeric_only=True)
+# Filter only numeric columns manually
+km_cluster_profile = df1.select_dtypes(include='number').groupby(df1["KM_segments"]).mean()
+km_cluster_profile["count_in_each_segment"] = (
+    df1.groupby("KM_segments")["Security"].count().values )
+km_cluster_profile.style.highlight_max(color="lightgreen", axis=0)
+ 	Current Price	Price Change	Volatility	ROE	Cash Ratio	Net Cash Flow	Net Income	Earnings Per Share	Estimated Shares Outstanding	P/E Ratio	P/B Ratio	KM_segments	count_in_each_segment
+KM_segments	 	 	 	 	 	 	 	 	 	 	 	 	 
+0	78.317709	17.072784	1.837829	30.937500	355.000000	282351312.500000	1045009937.500000	2.041875	826652504.337500	43.575343	8.327790	0.000000	16
+1	46.513334	-11.339513	2.528347	96.444444	57.888889	-896701333.333333	-6305921777.777778	-16.607778	445515335.960000	70.907059	0.959532	1.000000	9
+2	70.786021	5.434831	1.353096	20.114286	53.379592	16310469.387755	1449401085.714286	3.535204	428851023.545633	23.820076	-1.770027	2.000000	245
+3	48.103077	6.053507	1.163964	27.538462	77.230769	773230769.230769	14114923076.923077	3.958462	3918734987.169230	16.098039	-4.253404	3.000000	13
+4	508.534992	5.732177	1.504640	27.250000	150.875000	37895875.000000	1116994125.000000	15.965000	75654420.935000	43.727459	29.581664	4.000000	8
+5	24.485001	-13.351992	3.482611	802.000000	51.000000	-1292500000.000000	-19106500000.000000	-41.815000	519573983.250000	60.748608	1.565141	5.000000	2
+6	90.797143	4.957495	1.462532	214.142857	40.380952	-93181142.857143	2195875523.809524	4.785714	443891905.006190	22.110362	-23.952239	6.000000	21
+7	327.006671	21.917380	2.029752	4.000000	106.000000	698240666.666667	287547000.000000	0.750000	366763235.300000	400.989188	-5.322376	7.000000	3
+8	36.894297	-16.685444	2.792467	21.000000	45.652174	457884000.000000	-355319304.347826	-0.154783	472830352.019130	68.222052	1.828094	8.000000	23
+for cl in df1["KM_segments"].unique():
+    print("In cluster {}, the following companies are present:".format(cl))
+    print(df1[df1["KM_segments"] == cl]["Security"].unique())
+    print()
+In cluster 6, the following companies are present:
+['American Airlines Group' 'AbbVie' 'Allegion'
+ 'Affiliated Managers Group Inc' 'Anthem Inc.' 'Charter Communications'
+ 'Colgate-Palmolive' 'CME Group Inc.' 'Discovery Communications-A'
+ 'Discovery Communications-C' 'Expedia Inc.' 'IDEXX Laboratories'
+ 'Kimberly-Clark' 'Lockheed Martin Corp.' 'Masco Corp.' 'Altria Group Inc'
+ 'Pitney-Bowes' 'S&P Global, Inc.' 'United Continental Holdings'
+ 'United Parcel Service' 'Whirlpool Corp.']
+
+In cluster 2, the following companies are present:
+['Abbott Laboratories' 'Adobe Systems Inc' 'Archer-Daniels-Midland Co'
+ 'Ameren Corp' 'American Electric Power' 'AFLAC Inc'
+ 'American International Group, Inc.' 'Apartment Investment & Mgmt'
+ 'Assurant Inc' 'Arthur J. Gallagher & Co.' 'Akamai Technologies Inc'
+ 'Albemarle Corp' 'Alaska Air Group Inc' 'Allstate Corp'
+ 'Applied Materials Inc' 'AMETEK Inc' 'Ameriprise Financial'
+ 'American Tower Corp A' 'AutoNation Inc' 'Aon plc' 'Amphenol Corp'
+ 'Activision Blizzard' 'AvalonBay Communities, Inc.' 'Broadcom'
+ 'American Water Works Company Inc' 'American Express Co' 'Boeing Company'
+ 'Baxter International Inc.' 'BB&T Corporation' 'Bard (C.R.) Inc.'
+ 'The Bank of New York Mellon Corp.' 'Ball Corp' 'Bristol-Myers Squibb'
+ 'Boston Scientific' 'BorgWarner' 'Boston Properties' 'Caterpillar Inc.'
+ 'Chubb Limited' 'CBRE Group' 'Crown Castle International Corp.'
+ 'Carnival Corp.' 'Citizens Financial Group' 'Church & Dwight'
+ 'C. H. Robinson Worldwide' 'CIGNA Corp.' 'Cincinnati Financial'
+ 'Comerica Inc.' 'Cummins Inc.' 'CMS Energy' 'Centene Corporation'
+ 'CenterPoint Energy' 'Capital One Financial' 'The Cooper Companies'
+ 'CSX Corp.' 'CenturyLink Inc' 'Cognizant Technology Solutions'
+ 'Citrix Systems' 'CVS Health' 'Chevron Corp.' 'Dominion Resources'
+ 'Delta Air Lines' 'Du Pont (E.I.)' 'Deere & Co.'
+ 'Discover Financial Services' 'Quest Diagnostics' 'Danaher Corp.'
+ 'The Walt Disney Company' 'Delphi Automotive' 'Digital Realty Trust'
+ 'Dun & Bradstreet' 'Dover Corp.' 'Dr Pepper Snapple Group' 'Duke Energy'
+ 'DaVita Inc.' 'Ecolab Inc.' 'Consolidated Edison' 'Equifax Inc.'
+ "Edison Int'l" 'Eastman Chemical' 'Equity Residential'
+ 'Eversource Energy' 'Essex Property Trust, Inc.' 'E*Trade'
+ 'Eaton Corporation' 'Entergy Corp.' 'Exelon Corp.' "Expeditors Int'l"
+ 'Extra Space Storage' 'Fastenal Co' 'Fortune Brands Home & Security'
+ 'FirstEnergy Corp' 'Fidelity National Information Services' 'Fiserv Inc'
+ 'FLIR Systems' 'Fluor Corp.' 'Flowserve Corporation' 'FMC Corporation'
+ 'Federal Realty Investment Trust' 'General Dynamics'
+ 'General Growth Properties Inc.' 'Corning Inc.' 'General Motors'
+ 'Genuine Parts' 'Garmin Ltd.' 'Goodyear Tire & Rubber'
+ 'Grainger (W.W.) Inc.' 'Hasbro Inc.' 'Huntington Bancshares'
+ 'HCA Holdings' 'Welltower Inc.' 'HCP Inc.' 'Hartford Financial Svc.Gp.'
+ 'Harley-Davidson' "Honeywell Int'l Inc." 'HP Inc.' 'Hormel Foods Corp.'
+ 'Henry Schein' 'Host Hotels & Resorts' 'The Hershey Company'
+ 'Humana Inc.' 'International Business Machines'
+ 'Intl Flavors & Fragrances' 'International Paper' 'Interpublic Group'
+ 'Iron Mountain Incorporated' 'Illinois Tool Works' 'Invesco Ltd.'
+ 'J. B. Hunt Transport Services' 'Jacobs Engineering Group'
+ 'Juniper Networks' 'Kimco Realty' 'Leggett & Platt' 'Lennar Corp.'
+ 'Laboratory Corp. of America Holding' 'LKQ Corporation'
+ 'L-3 Communications Holdings' 'Lilly (Eli) & Co.' 'Alliant Energy Corp'
+ 'Leucadia National Corp.' 'Southwest Airlines' 'Level 3 Communications'
+ 'LyondellBasell' 'Mastercard Inc.' 'Mid-America Apartments' 'Macerich'
+ "Marriott Int'l." 'Mattel Inc.' "Moody's Corp" 'Mondelez International'
+ 'MetLife Inc.' 'Mohawk Industries' 'Mead Johnson' 'McCormick & Co.'
+ 'Marsh & McLennan' '3M Company' 'Marathon Petroleum' 'M&T Bank Corp.'
+ 'Mylan N.V.' 'Navient' 'NASDAQ OMX Group' 'NextEra Energy'
+ 'Nielsen Holdings' 'Norfolk Southern Corp.' 'Northern Trust Corp.'
+ 'Nucor Corp.' 'Newell Brands' 'Realty Income Corporation' 'Omnicom Group'
+ "O'Reilly Automotive" "People's United Financial" 'PACCAR Inc.'
+ 'PG&E Corp.' 'Public Serv. Enterprise Inc.' 'PepsiCo Inc.'
+ 'Principal Financial Group' 'Procter & Gamble' 'Progressive Corp.'
+ 'Pulte Homes Inc.' 'Philip Morris International' 'PNC Financial Services'
+ 'Pentair Ltd.' 'Pinnacle West Capital' 'PPG Industries' 'PPL Corp.'
+ 'Prudential Financial' 'Phillips 66' 'Praxair Inc.' 'PayPal'
+ 'Royal Caribbean Cruises Ltd' 'Robert Half International'
+ 'Roper Industries' 'Republic Services Inc' 'SCANA Corp'
+ 'Charles Schwab Corporation' 'Sealed Air' 'Sherwin-Williams'
+ 'SL Green Realty' 'Scripps Networks Interactive Inc.' 'Southern Co.'
+ 'Simon Property Group Inc' 'Stericycle Inc' 'Sempra Energy'
+ 'SunTrust Banks' 'State Street Corp.' 'Skyworks Solutions'
+ 'Synchrony Financial' 'Stryker Corp.' 'Molson Coors Brewing Company'
+ 'Tegna, Inc.' 'Torchmark Corp.' 'Thermo Fisher Scientific'
+ 'The Travelers Companies Inc.' 'Tractor Supply Company' 'Tyson Foods'
+ 'Tesoro Petroleum Co.' 'Total System Services' 'Texas Instruments'
+ 'Under Armour' 'UDR Inc' 'Universal Health Services, Inc.'
+ 'United Health Group Inc.' 'Unum Group' 'Union Pacific'
+ 'United Technologies' 'Varian Medical Systems' 'Valero Energy'
+ 'Vulcan Materials' 'Vornado Realty Trust' 'Verisk Analytics'
+ 'Verisign Inc.' 'Ventas Inc' 'Wec Energy Group Inc'
+ 'Waste Management Inc.' 'Western Union Co' 'Weyerhaeuser Corp.'
+ 'Wyndham Worldwide' 'Xcel Energy Inc' 'XL Capital' 'Dentsply Sirona'
+ 'Xerox Corp.' 'Xylem Inc.' 'Yum! Brands Inc' 'Zimmer Biomet Holdings'
+ 'Zions Bancorp' 'Zoetis']
+
+In cluster 0, the following companies are present:
+['Analog Devices, Inc.' 'Amgen Inc' 'Celgene Corp.' 'eBay Inc.'
+ 'Edwards Lifesciences' 'Facebook' 'First Solar Inc'
+ 'Frontier Communications' "McDonald's Corp." 'Monster Beverage'
+ 'Newmont Mining Corp. (Hldg. Co.)' 'TripAdvisor'
+ 'Vertex Pharmaceuticals Inc' 'Waters Corporation' 'Wynn Resorts Ltd'
+ 'Yahoo Inc.']
+
+In cluster 4, the following companies are present:
+['Alliance Data Systems' 'BIOGEN IDEC Inc.' 'Chipotle Mexican Grill'
+ 'Equinix' 'Intuitive Surgical Inc.' 'Mettler Toledo' 'Priceline.com Inc'
+ 'Regeneron']
+
+In cluster 7, the following companies are present:
+['Alexion Pharmaceuticals' 'Amazon.com Inc' 'Netflix Inc.']
+
+In cluster 5, the following companies are present:
+['Apache Corporation' 'Chesapeake Energy']
+
+In cluster 1, the following companies are present:
+['Anadarko Petroleum Corp' 'Devon Energy Corp.' 'EOG Resources'
+ 'Freeport-McMoran Cp & Gld' 'Hess Corporation' 'Murphy Oil'
+ 'Newfield Exploration Co' 'Occidental Petroleum' 'Cimarex Energy']
+
+In cluster 8, the following companies are present:
+['Arconic Inc' 'Baker Hughes Inc' 'CF Industries Holdings Inc'
+ 'Cabot Oil & Gas' 'Concho Resources' 'EQT Corporation' 'Halliburton Co.'
+ 'Hewlett Packard Enterprise' 'Kinder Morgan' 'Kansas City Southern'
+ 'Martin Marietta Materials' 'The Mosaic Company' 'Marathon Oil Corp.'
+ 'Noble Energy Inc' 'National Oilwell Varco Inc.' 'ONEOK'
+ 'Quanta Services Inc.' 'Ryder System' 'Range Resources Corp.'
+ 'Spectra Energy Corp.' 'Southwestern Energy' 'Teradata Corp.'
+ 'Williams Cos.']
+
+In cluster 3, the following companies are present:
+['Bank of America Corp' 'Citigroup Inc.' 'Ford Motor' 'Gilead Sciences'
+ 'Intel Corp.' 'JPMorgan Chase & Co.' 'Coca Cola Company' 'Merck & Co.'
+ 'Pfizer Inc.' 'AT&T Inc' 'Verizon Communications' 'Wells Fargo'
+ 'Exxon Mobil Corp.']
+
+df1.groupby(["KM_segments", "GICS Sector"])['Security'].count()
+Security
+KM_segments	GICS Sector	
+0	Consumer Discretionary	3
+Consumer Staples	1
+Health Care	5
+Information Technology	5
+Materials	1
+Telecommunications Services	1
+1	Energy	8
+Materials	1
+2	Consumer Discretionary	28
+Consumer Staples	14
+Energy	5
+Financials	42
+Health Care	24
+Industrials	42
+Information Technology	23
+Materials	15
+Real Estate	26
+Telecommunications Services	2
+Utilities	24
+3	Consumer Discretionary	1
+Consumer Staples	1
+Energy	1
+Financials	4
+Health Care	3
+Information Technology	1
+Telecommunications Services	2
+4	Consumer Discretionary	2
+Health Care	4
+Information Technology	1
+Real Estate	1
+5	Energy	2
+6	Consumer Discretionary	5
+Consumer Staples	3
+Financials	3
+Health Care	3
+Industrials	7
+7	Consumer Discretionary	1
+Health Care	1
+Information Technology	1
+8	Energy	14
+Industrials	4
+Information Technology	2
+Materials	3
+
+dtype: int64
+plt.figure(figsize=(20, 20))
+plt.suptitle("Boxplot of numerical variables for each cluster")
+
+# selecting numerical columns
+num_col = df.select_dtypes(include=np.number).columns.tolist()
+
+for i, variable in enumerate(num_col):
+    plt.subplot(3, 4, i + 1)
+    sns.boxplot(data=df1, x="KM_segments", y=variable)
+
+plt.tight_layout(pad=2.0)
+
+Based on the boxplots
+
+⚛ Cluster 0
+
+Has moderate Current Price and Price
+Change values with low variability.
+Volatility and ROE are relatively low.
+Cash Ratio is also low, indicating limited cash liquidity.
+Shows low P/E Ratio and P/B Ratio, suggesting conservative valuations.
+⚛ Cluster 1
+
+Moderate Current Price and Price Change with some variability.
+Volatility is among the highest across clusters, indicating high risk.
+Has a broad range of Net Income, with many outliers.
+Cash Ratio and P/E Ratio values are moderate, suggesting average liquidity and valuations.
+⚛ Cluster 2
+
+Moderate Current Price and Price Change with a narrow range, indicating stability.
+Low Volatility and ROE values, showing low risk and moderate returns.
+Cash Ratio and P/E Ratio are relatively low, suggesting low liquidity and valuation.
+⚛ Cluster 3
+
+Moderate Current Price and Price Change values with wide variability.
+Volatility is moderate, and ROE has a wide range.
+Shows the highest variability in Net Cash Flow.
+P/E Ratio and P/B Ratio values are average but have outliers, indicating varied valuations.
+⚛ Cluster 4
+
+Moderate Current Price and Price Change values.
+Low Volatility and ROE, showing low risk and low returns.
+Cash Ratio is low, indicating limited liquidity.
+P/E Ratio and P/B Ratio values are also low, suggesting conservative valuations.
+⚛ Cluster 5
+
+Low Current Price with a moderate Price Change.
+Volatility and ROE are on the lower side.
+Cash Ratio is among the highest, suggesting high liquidity.
+P/E Ratio and P/B Ratio values are relatively low, indicating conservative valuations.
+⚛ Cluster 6
+
+Has a high Current Price with a small Price Change range.
+Volatility and ROE are low, indicating stability and conservative returns.
+Cash Ratio is moderate, showing reasonable liquidity.
+P/E Ratio is the highest in this cluster, suggesting higher valuations.
+⚛ Cluster 7
+
+Has a high Current Price and Price Change, with the highest Volatility.
+ROE is high, indicating potential for high returns.
+Moderate Cash Ratio, suggesting balanced liquidity.
+P/E Ratio is high, while P/B Ratio is moderate, indicating moderate to high valuations.
+⚛ Cluster 8
+
+Has the highest Current Price and wide Price Change variability.
+Volatility is very high, indicating high risk.
+ROE and Net Income are on the higher side, indicating potentially strong financials.
+High Cash Ratio, showing strong liquidity. P/E Ratio and P/B Ratio values are also high, suggesting high valuations.
+Hierarchical Clustering
+hc_df = subset_scaled_df.copy()
+# list of distance metrics
+distance_metrics = ["euclidean", "chebyshev", "mahalanobis", "cityblock"] ## Complete the code to add distance metrics
+
+# list of linkage methods
+linkage_methods = ["single", "complete", "average", "weighted"] ## Complete the code to add linkages
+
+high_cophenet_corr = 0
+high_dm_lm = [0, 0]
+
+for dm in distance_metrics:
+    for lm in linkage_methods:
+        Z = linkage(hc_df, metric=dm, method=lm)
+        c, coph_dists = cophenet(Z, pdist(hc_df))
+        print(
+            "Cophenetic correlation for {} distance and {} linkage is {}.".format(
+                dm.capitalize(), lm, c
+            )
+        )
+        if high_cophenet_corr < c:
+            high_cophenet_corr = c
+            high_dm_lm[0] = dm
+            high_dm_lm[1] = lm
+
+# printing the combination of distance metric and linkage method with the highest cophenetic correlation
+print('*'*100)
+print(
+    "Highest cophenetic correlation is {}, which is obtained with {} distance and {} linkage.".format(
+        high_cophenet_corr, high_dm_lm[0].capitalize(), high_dm_lm[1]
+    )
+)
+Cophenetic correlation for Euclidean distance and single linkage is 0.9232271494002922.
+Cophenetic correlation for Euclidean distance and complete linkage is 0.7873280186580672.
+Cophenetic correlation for Euclidean distance and average linkage is 0.9422540609560814.
+Cophenetic correlation for Euclidean distance and weighted linkage is 0.8693784298129404.
+Cophenetic correlation for Chebyshev distance and single linkage is 0.9062538164750717.
+Cophenetic correlation for Chebyshev distance and complete linkage is 0.598891419111242.
+Cophenetic correlation for Chebyshev distance and average linkage is 0.9338265528030499.
+Cophenetic correlation for Chebyshev distance and weighted linkage is 0.9127355892367.
+Cophenetic correlation for Mahalanobis distance and single linkage is 0.925919553052459.
+Cophenetic correlation for Mahalanobis distance and complete linkage is 0.7925307202850002.
+Cophenetic correlation for Mahalanobis distance and average linkage is 0.9247324030159736.
+Cophenetic correlation for Mahalanobis distance and weighted linkage is 0.8708317490180428.
+Cophenetic correlation for Cityblock distance and single linkage is 0.9334186366528574.
+Cophenetic correlation for Cityblock distance and complete linkage is 0.7375328863205818.
+Cophenetic correlation for Cityblock distance and average linkage is 0.9302145048594667.
+Cophenetic correlation for Cityblock distance and weighted linkage is 0.731045513520281.
+****************************************************************************************************
+Highest cophenetic correlation is 0.9422540609560814, which is obtained with Euclidean distance and average linkage.
+Euclidean distance
+# list of linkage methods
+linkage_methods = ["single", "complete", "average", "centroid", "ward", "weighted"]
+
+high_cophenet_corr = 0
+high_dm_lm = [0, 0]
+
+for lm in linkage_methods:
+    Z = linkage(hc_df, metric="euclidean", method=lm)
+    c, coph_dists = cophenet(Z, pdist(hc_df))
+    print("Cophenetic correlation for {} linkage is {}.".format(lm, c))
+    if high_cophenet_corr < c:
+        high_cophenet_corr = c
+        high_dm_lm[0] = "euclidean"
+        high_dm_lm[1] = lm
+
+# printing the combination of distance metric and linkage method with the highest cophenetic correlation
+print('*'*100)
+print(
+    "Highest cophenetic correlation is {}, which is obtained with {} linkage.".format(
+        high_cophenet_corr, high_dm_lm[1]
+    )
+)
+Cophenetic correlation for single linkage is 0.9232271494002922.
+Cophenetic correlation for complete linkage is 0.7873280186580672.
+Cophenetic correlation for average linkage is 0.9422540609560814.
+Cophenetic correlation for centroid linkage is 0.9314012446828154.
+Cophenetic correlation for ward linkage is 0.7101180299865353.
+Cophenetic correlation for weighted linkage is 0.8693784298129404.
+****************************************************************************************************
+Highest cophenetic correlation is 0.9422540609560814, which is obtained with average linkage.
+# list of linkage methods
+linkage_methods = ["single", "complete", "average", "centroid", "ward", "weighted"]
+
+# lists to save results of cophenetic correlation calculation
+compare_cols = ["Linkage", "Cophenetic Coefficient"]
+compare = []
+
+# to create a subplot image
+fig, axs = plt.subplots(len(linkage_methods), 1, figsize=(15, 30))
+
+# We will enumerate through the list of linkage methods above
+# For each linkage method, we will plot the dendrogram and calculate the cophenetic correlation
+for i, method in enumerate(linkage_methods):
+    Z = linkage(hc_df, metric="euclidean", method=method)
+
+    dendrogram(Z, ax=axs[i])
+    axs[i].set_title(f"Dendrogram ({method.capitalize()} Linkage)")
+
+    coph_corr, coph_dist = cophenet(Z, pdist(hc_df))
+    axs[i].annotate(
+        f"Cophenetic\nCorrelation\n{coph_corr:0.2f}",
+        (0.80, 0.80),
+        xycoords="axes fraction",
+    )
+
+    compare.append([method, coph_corr])
+
+# create and print a dataframe to compare cophenetic correlations for different linkage methods
+df_cc = pd.DataFrame(compare, columns=compare_cols)
+df_cc = df_cc.sort_values(by="Cophenetic Coefficient")
+df_cc
+Linkage	Cophenetic Coefficient
+4	ward	0.710118
+1	complete	0.787328
+5	weighted	0.869378
+0	single	0.923227
+3	centroid	0.931401
+2	average	0.942254
+from sklearn.cluster import AgglomerativeClustering
+
+HCmodel = AgglomerativeClustering(n_clusters=6, metric="euclidean", linkage="ward")
+HCmodel.fit(hc_df)
+
+  AgglomerativeClustering?i
+AgglomerativeClustering(n_clusters=6)
+# creating a copy of the original data
+df2 = df.copy()
+
+# adding hierarchical cluster labels to the original and scaled dataframes
+hc_df["HC_segments"] = HCmodel.labels_
+df2["HC_segments"] = HCmodel.labels_
+* Cluster Profiling
+
+# Select only numeric columns and then calculate the mean for each cluster
+hc_cluster_profile = df2.select_dtypes(include='number').groupby(df2["HC_segments"]).mean()
+hc_cluster_profile["count_in_each_segment"] = (
+    df2.groupby("HC_segments")["Security"].count().values  ## Complete the code to groupby the cluster labels
+)
+hc_cluster_profile.style.highlight_max(color="yellow", axis=0)
+ 	Current Price	Price Change	Volatility	ROE	Cash Ratio	Net Cash Flow	Net Income	Earnings Per Share	Estimated Shares Outstanding	P/E Ratio	P/B Ratio	HC_segments	count_in_each_segment
+HC_segments	 	 	 	 	 	 	 	 	 	 	 	 	 
+0	42.848182	6.270446	1.123547	22.727273	71.454545	558636363.636364	14631272727.272728	3.410000	4242572567.290909	15.242169	-4.924615	0.000000	11
+1	84.355716	3.854981	1.827670	633.571429	33.571429	-568400000.000000	-4968157142.857142	-10.841429	398169036.442857	42.284541	-11.589502	1.000000	7
+2	325.996105	7.724708	1.545762	17.000000	360.333333	186503166.666667	1008736416.666667	9.544167	589434517.801667	41.121871	25.258283	2.000000	12
+3	72.760400	5.213307	1.427078	25.603509	60.392982	79951512.280702	1538594322.807018	3.655351	446472132.228456	24.722670	-2.647194	3.000000	285
+4	36.440455	-16.073408	2.832884	57.500000	42.409091	-472834090.909091	-3161045227.272727	-8.005000	514367806.201818	85.555682	0.836839	4.000000	22
+5	327.006671	21.917380	2.029752	4.000000	106.000000	698240666.666667	287547000.000000	0.750000	366763235.300000	400.989188	-5.322376	5.000000	3
+## Complete the code to print the companies in each cluster
+for cl in df2["HC_segments"].unique():
+    print("In cluster {}, the following companies are present:".format(cl))
+    print(df2[df2["HC_segments"] == cl]["Security"].unique())
+    print()
+In cluster 3, the following companies are present:
+['American Airlines Group' 'AbbVie' 'Abbott Laboratories'
+ 'Adobe Systems Inc' 'Analog Devices, Inc.' 'Archer-Daniels-Midland Co'
+ 'Ameren Corp' 'American Electric Power' 'AFLAC Inc'
+ 'American International Group, Inc.' 'Apartment Investment & Mgmt'
+ 'Assurant Inc' 'Arthur J. Gallagher & Co.' 'Akamai Technologies Inc'
+ 'Albemarle Corp' 'Alaska Air Group Inc' 'Allstate Corp'
+ 'Applied Materials Inc' 'AMETEK Inc' 'Affiliated Managers Group Inc'
+ 'Ameriprise Financial' 'American Tower Corp A' 'AutoNation Inc'
+ 'Anthem Inc.' 'Aon plc' 'Amphenol Corp' 'Arconic Inc'
+ 'Activision Blizzard' 'AvalonBay Communities, Inc.' 'Broadcom'
+ 'American Water Works Company Inc' 'American Express Co' 'Boeing Company'
+ 'Baxter International Inc.' 'BB&T Corporation' 'Bard (C.R.) Inc.'
+ 'BIOGEN IDEC Inc.' 'The Bank of New York Mellon Corp.' 'Ball Corp'
+ 'Bristol-Myers Squibb' 'Boston Scientific' 'BorgWarner'
+ 'Boston Properties' 'Caterpillar Inc.' 'Chubb Limited' 'CBRE Group'
+ 'Crown Castle International Corp.' 'Carnival Corp.' 'Celgene Corp.'
+ 'CF Industries Holdings Inc' 'Citizens Financial Group' 'Church & Dwight'
+ 'C. H. Robinson Worldwide' 'CIGNA Corp.' 'Cincinnati Financial'
+ 'Comerica Inc.' 'CME Group Inc.' 'Cummins Inc.' 'CMS Energy'
+ 'Centene Corporation' 'CenterPoint Energy' 'Capital One Financial'
+ 'The Cooper Companies' 'CSX Corp.' 'CenturyLink Inc'
+ 'Cognizant Technology Solutions' 'Citrix Systems' 'CVS Health'
+ 'Chevron Corp.' 'Dominion Resources' 'Delta Air Lines' 'Du Pont (E.I.)'
+ 'Deere & Co.' 'Discover Financial Services' 'Quest Diagnostics'
+ 'Danaher Corp.' 'The Walt Disney Company' 'Discovery Communications-A'
+ 'Discovery Communications-C' 'Delphi Automotive' 'Digital Realty Trust'
+ 'Dun & Bradstreet' 'Dover Corp.' 'Dr Pepper Snapple Group' 'Duke Energy'
+ 'DaVita Inc.' 'eBay Inc.' 'Ecolab Inc.' 'Consolidated Edison'
+ 'Equifax Inc.' "Edison Int'l" 'Eastman Chemical' 'Equity Residential'
+ 'EQT Corporation' 'Eversource Energy' 'Essex Property Trust, Inc.'
+ 'E*Trade' 'Eaton Corporation' 'Entergy Corp.' 'Edwards Lifesciences'
+ 'Exelon Corp.' "Expeditors Int'l" 'Expedia Inc.' 'Extra Space Storage'
+ 'Fastenal Co' 'Fortune Brands Home & Security' 'FirstEnergy Corp'
+ 'Fidelity National Information Services' 'Fiserv Inc' 'FLIR Systems'
+ 'Fluor Corp.' 'Flowserve Corporation' 'FMC Corporation'
+ 'Federal Realty Investment Trust' 'First Solar Inc' 'General Dynamics'
+ 'General Growth Properties Inc.' 'Gilead Sciences' 'Corning Inc.'
+ 'General Motors' 'Genuine Parts' 'Garmin Ltd.' 'Goodyear Tire & Rubber'
+ 'Grainger (W.W.) Inc.' 'Halliburton Co.' 'Hasbro Inc.'
+ 'Huntington Bancshares' 'HCA Holdings' 'Welltower Inc.' 'HCP Inc.'
+ 'Hartford Financial Svc.Gp.' 'Harley-Davidson' "Honeywell Int'l Inc."
+ 'Hewlett Packard Enterprise' 'HP Inc.' 'Hormel Foods Corp.'
+ 'Henry Schein' 'Host Hotels & Resorts' 'The Hershey Company'
+ 'Humana Inc.' 'International Business Machines' 'IDEXX Laboratories'
+ 'Intl Flavors & Fragrances' 'International Paper' 'Interpublic Group'
+ 'Iron Mountain Incorporated' 'Illinois Tool Works' 'Invesco Ltd.'
+ 'J. B. Hunt Transport Services' 'Jacobs Engineering Group'
+ 'Juniper Networks' 'Kimco Realty' 'Kansas City Southern'
+ 'Leggett & Platt' 'Lennar Corp.' 'Laboratory Corp. of America Holding'
+ 'LKQ Corporation' 'L-3 Communications Holdings' 'Lilly (Eli) & Co.'
+ 'Lockheed Martin Corp.' 'Alliant Energy Corp' 'Leucadia National Corp.'
+ 'Southwest Airlines' 'Level 3 Communications' 'LyondellBasell'
+ 'Mastercard Inc.' 'Mid-America Apartments' 'Macerich' "Marriott Int'l."
+ 'Masco Corp.' 'Mattel Inc.' "McDonald's Corp." "Moody's Corp"
+ 'Mondelez International' 'MetLife Inc.' 'Mohawk Industries'
+ 'Mead Johnson' 'McCormick & Co.' 'Martin Marietta Materials'
+ 'Marsh & McLennan' '3M Company' 'Altria Group Inc' 'The Mosaic Company'
+ 'Marathon Petroleum' 'Merck & Co.' 'M&T Bank Corp.' 'Mettler Toledo'
+ 'Mylan N.V.' 'Navient' 'NASDAQ OMX Group' 'NextEra Energy'
+ 'Newmont Mining Corp. (Hldg. Co.)' 'Nielsen Holdings'
+ 'Norfolk Southern Corp.' 'Northern Trust Corp.' 'Nucor Corp.'
+ 'Newell Brands' 'Realty Income Corporation' 'Omnicom Group'
+ "O'Reilly Automotive" "People's United Financial" 'Pitney-Bowes'
+ 'PACCAR Inc.' 'PG&E Corp.' 'Public Serv. Enterprise Inc.' 'PepsiCo Inc.'
+ 'Principal Financial Group' 'Procter & Gamble' 'Progressive Corp.'
+ 'Pulte Homes Inc.' 'Philip Morris International' 'PNC Financial Services'
+ 'Pentair Ltd.' 'Pinnacle West Capital' 'PPG Industries' 'PPL Corp.'
+ 'Prudential Financial' 'Phillips 66' 'Quanta Services Inc.'
+ 'Praxair Inc.' 'PayPal' 'Ryder System' 'Royal Caribbean Cruises Ltd'
+ 'Robert Half International' 'Roper Industries' 'Republic Services Inc'
+ 'SCANA Corp' 'Charles Schwab Corporation' 'Sealed Air' 'Sherwin-Williams'
+ 'SL Green Realty' 'Scripps Networks Interactive Inc.' 'Southern Co.'
+ 'Simon Property Group Inc' 'Stericycle Inc' 'Sempra Energy'
+ 'SunTrust Banks' 'State Street Corp.' 'Skyworks Solutions'
+ 'Synchrony Financial' 'Stryker Corp.' 'Molson Coors Brewing Company'
+ 'Tegna, Inc.' 'Torchmark Corp.' 'Thermo Fisher Scientific' 'TripAdvisor'
+ 'The Travelers Companies Inc.' 'Tractor Supply Company' 'Tyson Foods'
+ 'Tesoro Petroleum Co.' 'Total System Services' 'Texas Instruments'
+ 'Under Armour' 'United Continental Holdings' 'UDR Inc'
+ 'Universal Health Services, Inc.' 'United Health Group Inc.' 'Unum Group'
+ 'Union Pacific' 'United Parcel Service' 'United Technologies'
+ 'Varian Medical Systems' 'Valero Energy' 'Vulcan Materials'
+ 'Vornado Realty Trust' 'Verisk Analytics' 'Verisign Inc.'
+ 'Vertex Pharmaceuticals Inc' 'Ventas Inc' 'Wec Energy Group Inc'
+ 'Whirlpool Corp.' 'Waste Management Inc.' 'Western Union Co'
+ 'Weyerhaeuser Corp.' 'Wyndham Worldwide' 'Wynn Resorts Ltd'
+ 'Xcel Energy Inc' 'XL Capital' 'Dentsply Sirona' 'Xerox Corp.'
+ 'Xylem Inc.' 'Yum! Brands Inc' 'Zimmer Biomet Holdings' 'Zions Bancorp'
+ 'Zoetis']
+
+In cluster 2, the following companies are present:
+['Alliance Data Systems' 'Amgen Inc' 'Chipotle Mexican Grill' 'Equinix'
+ 'Facebook' 'Frontier Communications' 'Intuitive Surgical Inc.'
+ 'Monster Beverage' 'Priceline.com Inc' 'Regeneron' 'Waters Corporation'
+ 'Yahoo Inc.']
+
+In cluster 1, the following companies are present:
+['Allegion' 'Apache Corporation' 'Chesapeake Energy'
+ 'Charter Communications' 'Colgate-Palmolive' 'Kimberly-Clark'
+ 'S&P Global, Inc.']
+
+In cluster 5, the following companies are present:
+['Alexion Pharmaceuticals' 'Amazon.com Inc' 'Netflix Inc.']
+
+In cluster 4, the following companies are present:
+['Anadarko Petroleum Corp' 'Baker Hughes Inc' 'Cabot Oil & Gas'
+ 'Concho Resources' 'Devon Energy Corp.' 'EOG Resources'
+ 'Freeport-McMoran Cp & Gld' 'Hess Corporation' 'Kinder Morgan'
+ 'Marathon Oil Corp.' 'Murphy Oil' 'Noble Energy Inc'
+ 'Newfield Exploration Co' 'National Oilwell Varco Inc.' 'ONEOK'
+ 'Occidental Petroleum' 'Range Resources Corp.' 'Spectra Energy Corp.'
+ 'Southwestern Energy' 'Teradata Corp.' 'Williams Cos.' 'Cimarex Energy']
+
+In cluster 0, the following companies are present:
+['Bank of America Corp' 'Citigroup Inc.' 'Ford Motor' 'Intel Corp.'
+ 'JPMorgan Chase & Co.' 'Coca Cola Company' 'Pfizer Inc.' 'AT&T Inc'
+ 'Verizon Communications' 'Wells Fargo' 'Exxon Mobil Corp.']
+
+df2.groupby(["HC_segments", "GICS Sector"])['Security'].count()
+Security
+HC_segments	GICS Sector	
+0	Consumer Discretionary	1
+Consumer Staples	1
+Energy	1
+Financials	4
+Health Care	1
+Information Technology	1
+Telecommunications Services	2
+1	Consumer Discretionary	1
+Consumer Staples	2
+Energy	2
+Financials	1
+Industrials	1
+2	Consumer Discretionary	2
+Consumer Staples	1
+Health Care	4
+Information Technology	3
+Real Estate	1
+Telecommunications Services	1
+3	Consumer Discretionary	35
+Consumer Staples	15
+Energy	7
+Financials	44
+Health Care	34
+Industrials	52
+Information Technology	27
+Materials	19
+Real Estate	26
+Telecommunications Services	2
+Utilities	24
+4	Energy	20
+Information Technology	1
+Materials	1
+5	Consumer Discretionary	1
+Health Care	1
+Information Technology	1
+
+dtype: int64
+plt.figure(figsize=(20, 20))
+plt.suptitle("Boxplot of numerical variables for each cluster")
+
+for i, variable in enumerate(num_col):
+    plt.subplot(3, 4, i + 1)
+    sns.boxplot(data=df2, x="HC_segments", y=variable)
+
+plt.tight_layout(pad=2.0)
+
+Based on the box plot
+
+⚛ Cluster : 0
+
+Current Price is moderate, with some outliers, suggesting a balanced price level.
+Price Change is small, indicating relatively stable stock prices.
+Volatility is low, showing low risk.
+ROE (Return on Equity) is moderate, indicating decent profitability.
+Cash Ratio is very high, showing strong liquidity.
+Net Income has moderate positive values, with some outliers.
+P/E Ratio is low to moderate, suggesting a more conservative valuation.
+⚛ Cluster : 1
+
+Current Price is lower, with low variability.
+Price Change is positive but low, suggesting minimal price movements.
+Volatility is very low, indicating low risk.
+ROE is low, suggesting limited profitability.
+Cash Ratio is also low, suggesting limited liquidity.
+Net Income shows negative values for most companies in this cluster.
+P/E Ratio is low, possibly due to low or negative earnings, indicating lower valuation expectations.
+⚛ Cluster : 2
+
+Current Price is moderate, with low variability.
+Price Change is moderate, suggesting slight growth.
+Volatility is moderate, indicating balanced risk.
+ROE has moderate values, suggesting average profitability.
+Cash Ratio is low, suggesting limited liquidity.
+Net Income is generally positive, showing moderate profits.
+P/E Ratio is moderate, indicating balanced valuation.
+⚛ Cluster : 3
+
+Current Price is relatively low, with some variability.
+Price Change is negative, suggesting recent declines.
+Volatility is moderate, indicating moderate risk.
+ROE shows negative or low values, indicating low profitability.
+Cash Ratio is very low, suggesting limited cash reserves.
+Net Income is generally negative, showing losses.
+P/E Ratio is negative or low, indicating poor valuation due to low or negative earnings.
+⚛ Cluster : 4
+
+Current Price is moderate, with low variability.
+Price Change is positive but small, suggesting minimal growth.
+Volatility is moderate, indicating average risk.
+ROE is low, suggesting limited profitability.
+Cash Ratio is low, showing limited liquidity.
+Net Income is positive but low, showing small profits.
+P/E Ratio is moderate, indicating a balanced valuation.
+⚛ Cluster : 5
+
+Current Price is high, with a wide range.
+Price Change is positive and the highest among clusters, suggesting significant price increases.
+Volatility is high, indicating higher risk.
+ROE is very high, indicating high profitability.
+Cash Ratio is moderate, suggesting reasonable liquidity.
+Net Income has a broad range, showing significant variability in earnings.
+P/E Ratio is high, indicating higher valuation expectations, possibly due to strong growth and profitability.
+K-means vs Hierarchical Clustering
+⚛ Cluster Count
+
+K-Means Clustering
+
+9 clusters (0 to 8) - provides a more granular segmentation of data.
+Hierarchical Clustering
+
+6 clusters (0 to 5) - broader categories for general profiles.
+⚛ Risk Segmentation
+
+K-Means Clustering
+
+Differentiates clusters by various risk levels (e.g., Cluster 5 for low-risk, Cluster 7 and 8 for high-risk).
+Hierarchical Clustering
+
+Groups high-risk and low-risk companies in fewer, more general clusters (e.g., Cluster 1 for low-risk, Cluster 5 for high-risk).
+⚛ Cash Ratio
+
+K-Means Clustering
+
+Distinct segmentation of liquidity, with clusters like Cluster 8 indicating high liquidity and Cluster 0 showing limited liquidity.
+Hierarchical Clustering
+
+Provides general liquidity groups but does not differentiate as precisely (e.g., Cluster 0 has high liquidity, while Cluster 1 has low liquidity).
+⚛ Volatility
+
+K-Means Clustering
+
+Captures volatility in specific clusters, with Cluster 1 and 7 showing high variability, indicating higher risk.
+Hierarchical Clustering
+
+Provides moderate volatility segmentation; high-risk clusters are grouped more generally (e.g., Cluster 5).
+⚛ P/E, P/B Ratios
+
+K-Means Clustering
+
+Clusters like 6 and 8 highlight companies with high P/E ratios, indicating premium valuations.
+Hierarchical Clustering
+
+Focuses less on fine-grained valuation differences; provides broader valuation insights (e.g., Cluster 5 with higher P/E).
+⚛ Price Change & Growth
+
+K-Means Clustering
+
+Clusters are segmented by price change, with Cluster 8 showing the highest growth and Cluster 3 showing stability.
+Hierarchical Clustering
+
+Provides a general segmentation of growth, with Cluster 5 capturing high growth and Cluster 3 representing declines.
+⚛ ROE, Net Income
+
+K-Means Clustering
+
+Differentiates by profitability, with high ROE in Cluster 7, moderate in Cluster 0, and low in Cluster 4.
+Hierarchical Clustering
+
+Broader categorization of profitability, with high ROE in Cluster 5 and low in Cluster 3.
+
+Actionable insights and Recommendations
+Actionable Insights
+High-Risk, High-Reward Investments:
+
+K-Means: Clusters 7 and 8 show high volatility, high ROE, and high price change, making them suitable for aggressive investors looking for high-growth opportunities.
+Hierarchical: Cluster 5 captures companies with high returns and significant price increases, indicating potential for high returns but also higher risk.
+Stable, Conservative Investments:
+
+K-Means: Clusters like 0 and 2 have low volatility, low ROE, and conservative valuations (low P/E and P/B ratios). These are better suited for risk-averse investors.
+Hierarchical: Clusters 0 and 1 show lower volatility, stable cash ratios, and limited growth, appealing to conservative investors focused on stability.
+Growth-Oriented Investments:
+
+K-Means: Cluster 6 shows moderate to high P/E ratios and low volatility, indicating growth potential in a stable environment.
+Hierarchical: Cluster 2 reflects moderate growth with balanced risk, making it appealing for investors seeking stable growth.
+Profitability-Focused Investments:
+
+K-Means: Cluster 8 shows high net income and ROE, making it a good target for profitability-focused investors.
+Hierarchical: Cluster 5 also highlights companies with strong net income and high ROE, suitable for profitability-focused portfolios.
+Risk :
+
+Allocate funds across clusters with varied volatility levels to balance risk.
+Recommendations
+Diversification Strategy:
+
+Combine clusters from both models to create a balanced portfolio, incorporating high-growth segmentswith stable segments
+Risk Mitigation:
+
+Allocate funds across clusters with varied volatility levels to balance risk.
+Liquidity Prioritization:
+
+Consider allocating a portion to high-liquidity clusters to maintain a cushion of easily liquidated assets.
+Growth and Value Mix:
+
+Invest in clusters with moderate to high P/E ratios to capture growth potential, while balancing with low P/E clusters
+Monitoring :
+
+Regularly monitor clusters for shifts in volatility, liquidity to adjust allocations based on evolving risk and growth profiles.
